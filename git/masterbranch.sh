@@ -1,17 +1,19 @@
 #/bin/bash -x
 VERSION='0.1'
+CONNECTIVITY=0
+LOG_FORMAT=' --format=COMMITLINEMARK%n{\"revision\":\"%H\",\"author\":\"%an\",\"comitter\":\"%cn\",\"timestamp\":\"%ct\",\"message\":\"%f\"} '
+LOG_DEFAULT_OPTIONS=' --raw --stat --no-merges '
+LOG_CMD='git log '
 
 #Configuration Do not touch
-#Git commands
-CMD="curl -s -d repotoken=${REPOSITORY_TOKEN}"
-LOG_COMMAND="git log --format=COMMITLINEMARK%n{\"revision\":\"%H\",\"author\":\"%an\",\"comitter\":\"%cn\",\"timestamp\":\"%ct\",\"message\":\"%f\"} --raw --stat --no-merges --author=${AUTHOR}"
-
-#Masterbranch urls
-BASE_URL='http://localhost:9000/'
-LISTENER_CONTROLLER='local-hook'
-LISTENERURL=${BASE_URL}${LISTENER_CONTROLLER}
-
-
+get_last_revision (){
+	revision=`git config --local --get masterbranch.lastrevision`
+	if [[ -z $revision ]]
+	then
+		revision=0
+	fi
+	echo $revision
+}
 get_user_name () {
 	git_name=`git config --global --get user.name`
 	if [[ -z $git_name ]]
@@ -20,6 +22,44 @@ get_user_name () {
 	fi
 	echo "$git_name"
 }
+AUTHOR_OPTIONS=" --author=$(get_user_name) "
+
+
+test_connection(){
+	ping -c 2 google.com
+	if [[ -z $0 ]]
+	then
+	CONNECTIVITY=1
+	fi	
+}
+
+if [[ $CONNECTIVITY ]]
+then
+	last_rev=$(get_last_revision)
+	if [[ -z last_rev ]]
+	then
+		LOG_COMMAND=${LOG_CMD}'-n 1'${LOG_DEFAULT_OPTIONS}${LOG_FORMAT}
+	else
+		LOG_COMMAND=${LOG_CMD}${LOG_DEFAULT_OPTIONS}${LOG_FORMAT}${AUTHOR_OPTIONS}${last_revision}..HEAD
+		git config --unset --local masterbranch.lastrevision
+	fi
+else
+	last_rev=$(get_last_revision)
+	if [[ -z last_rev ]]
+	then
+		last_commit=`git log -n 1 --format=%H`
+		git config --local --add masterbranch.lastrevision ${last_commit}
+	fi
+	exit
+fi
+
+
+#Git commands
+
+#Masterbranch urls
+LISTENERURL='http://localhost:9000/local-hook'
+
+
 
 get_token () {
 	masterbranch_token=`git config  --global --get masterbranch.token`
@@ -32,31 +72,14 @@ get_token () {
 	echo "$masterbranch_token"	
 }
 
-get_last_revision (){
-	revision=`git config --local --get masterbranch.lastrevision`
-	if [[ -z $revision ]]
-	then
-		revision=0
-	fi
-	echo $revision
-}
+
 
 #User parameters
 token=$(get_token)
-user=$(get_user_name)
 repository_url=`git config --local --get remote.origin.url`
-last_revision=$(get_last_revision)
 
-#Commit process
+raw_data=`$LOG_COMMAND`
 
-
-if [[ ${last_revision} == 0 ]]
-then
-	raw_data=`$LOG_COMMAND`  
-else
-	raw_data=`$LOG_COMMAND ${last_commit}..HEAD`
-fi
-
-
-curl -d "token=${TOKEN}&payload=${raw_data}&version=${VERSION}" ${LISTENERURL} > /dev/null 2>&1
+url_params="token=${TOKEN}&payload=${raw_data}&version=${VERSION}"  
+curl --data-binary ${url_params} ${LISTENERURL} > result.out
 
