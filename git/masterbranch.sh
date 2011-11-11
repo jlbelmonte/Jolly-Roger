@@ -8,10 +8,8 @@ LOG_COMMAND="git log --format=COMMITLINEMARK%n{\"revision\":\"%H\",\"author\":\"
 
 #Masterbranch urls
 BASE_URL='http://localhost:9000/'
-LAST_COMMIT_CONTROLLER='inspect.repo'
-LISTENER_CONTROLLER='push.changes'
-INSPECTORURL=${BASE_URL}${LAST_COMMIT_CONTROLLER}
-LISTENERURL= ${BASE_URL}${LISTENER_CONTROLLER}
+LISTENER_CONTROLLER='local-hook'
+LISTENERURL=${BASE_URL}${LISTENER_CONTROLLER}
 
 
 get_user_name () {
@@ -34,24 +32,31 @@ get_token () {
 	echo "$masterbranch_token"	
 }
 
-#User parameters
-TOKEN=$(get_token)
-USER=$(get_user_name)
-REPOSITORYURL=`git config --local --get remote.origin.url`
+get_last_revision (){
+	revision=`git config --local --get masterbranch.lastrevision`
+	if [[ -z $revision ]]
+	then
+		revision=0
+	fi
+	echo $revision
+}
 
+#User parameters
+token=$(get_token)
+user=$(get_user_name)
+repository_url=`git config --local --get remote.origin.url`
+last_revision=$(get_last_revision)
 
 #Commit process
 
-#last_commit=`$CMD $INSPECTORURL`
 
-#if [[ ${last_commit} == 0 ]]
-#then
-	#raw_data=`$LOG_COMMAND`  
-
-#else
-	#raw_data=`$LOG_COMMAND ${last_commit}..HEAD`
-#fi
+if [[ ${last_revision} == 0 ]]
+then
+	raw_data=`$LOG_COMMAND`  
+else
+	raw_data=`$LOG_COMMAND ${last_commit}..HEAD`
+fi
 
 
-#curl -d "token=${TOKEN}&data=${raw_data}&version=${VERSION}" ${LISTENERURL} > /dev/null 2>&1
+curl -d "token=${TOKEN}&payload=${raw_data}&version=${VERSION}" ${LISTENERURL} > /dev/null 2>&1
 
