@@ -54,7 +54,8 @@ get_repository () {
 }
 
 do_log () {
-	echo `git log --raw --stat --no-merges --format=COMMITLINEMARK%n{\"revision\":\"%H\",\"author\":\"%an\",\"comitter\":\"%cn\",\"timestamp\":\"%ct\",\"message\":\"%f\"} --author="$(get_user_name)" $last_rev..HEAD`
+	# Notice than the commit parser just parses this format
+	echo `git log --author="$(get_user_name)" --pretty=format:'COMMITLINEMARK%n{ \"revision\": \"%H\",  \"author\": \"%an <%ae>\",  \"timestamp\": \"%ct\",  \"message\": \"%s\"}' --raw  $last_rev..HEAD`
 }
 
 set_last_revision () {
@@ -78,10 +79,12 @@ if [[ -z $raw_data ]]; then
 	exit 0
 fi
 
-encoded_data=`echo -n $raw_data | openssl enc -e -base64 | tr -d "\n"`
+#encode base64 for url
+encoded_data=`echo -n $raw_data | openssl enc -base64 | tr -d "\n" | tr "+" "-" | tr "/" "_"` 
+echo $encoded_data 
 
 url_params="repository=${repository_url}&token=${token}&payload=${encoded_data}&version=${VERSION}"  
-curl -d $url_params ${LISTENERURL} 
+curl --data-binary $url_params ${LISTENERURL} 
 
 #keeping track of revisions already pushed to masterbranch.com
 if [[ $? == 0 ]]; then
