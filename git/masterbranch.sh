@@ -1,12 +1,13 @@
-#/bin/bash -x
+#/bin/bash
 VERSION='0.1'
-CONNECTIVITY=0
+#Masterbranch urls
+LISTENERURL='http://localhost:9000/local-hook'
 LOG_FORMAT=' --format=COMMITLINEMARK%n{\"revision\":\"%H\",\"author\":\"%an\",\"comitter\":\"%cn\",\"timestamp\":\"%ct\",\"message\":\"%f\"} '
 LOG_DEFAULT_OPTIONS=' --raw --stat --no-merges '
 LOG_CMD='git log '
 
 #Configuration Do not touch
-get_last_revision (){
+get_last_revision_pushed_to_mb (){
 	revision=`git config --local --get masterbranch.lastrevision`
 	echo $revision
 }
@@ -23,67 +24,73 @@ AUTHOR_OPTIONS=' --author="'$(get_user_name)'"'
 
 test_connection(){
 	ping -c 2 google.com
-	if [[ 0 == $? ]]
+	if [[ 0 != $? ]]
 	then
-		CONNECTIVITY=1
+		exit 42
 	fi	
 }
 
 test_connection
 
-if [[ $CONNECTIVITY == 1 ]]
+
+last_rev=$(get_last_revision_pushed_to_mb)
+if [[ -z $last_rev ]]
 then
-	last_rev=$(get_last_revision)
-	if [[ -z $last_rev ]]
-	then
-		LOG_COMMAND=${LOG_CMD}'-n 1'${LOG_DEFAULT_OPTIONS}${LOG_FORMAT}
-	else
-		LOG_COMMAND=$LOG_CMD$LOG_DEFAULT_OPTIONS$LOG_FORMAT$AUTHOR_OPTIONS$last_rev..HEAD
-		git config --unset --local masterbranch.lastrevision
-	fi
-else
-	last_rev=$(get_last_revision)
-	if [[ -z $last_rev ]]
-	then
-		last_commit=`git log -n 1 --format=%H`
-		git config --local --add masterbranch.lastrevision ${last_commit}
-	fi
-	exit 255
+	rev_array=(`git log -n2 --format=%H`)
+	last_rev=${rev_array[1]}
 fi
 
-
-#Git commands
-
-#Masterbranch urls
-LISTENERURL='http://localhost:9000/local-hook'
-
-
+LOG_COMMAND=$LOG_CMD$LOG_DEFAULT_OPTIONS$LOG_FORMAT$AUTHOR_OPTIONS$last_rev..HEAD
+print_error () {
+	echo Please config your client as follows
+		echo git config --global --add masterbranch.token YOURTOKEN
+		echo git config --global --add masterbranch.token YOURTOKEN
+		exit 255
+}
 
 get_token () {
 	masterbranch_token=`git config  --global --get masterbranch.token`
 	if [[ -z $masterbranch_token ]]
 	then
-		echo Please config your client as follows
-		echo git config --global --add masterbranch.token YOURTOKEN
-		exit 255
+		print_error
 	fi	
 	echo "$masterbranch_token"	
 }
 
+get_email () {
+	masterbranch_email=`git config  --global --get masterbranch.email`
+	if [[ -z $masterbranch_email ]]
+	then
+		print_error
+	fi	
+	echo "$masterbranch_email"		
+}
+
+get_repository () {
+	uri=`git config --local --get remote.origin.url`
+	if [[ -z $uri ]]
+	then
+		uri=${PWD##*/}
+	fi
+	echo "$uri"
+}
 
 
-#User parameters
 token=$(get_token)
-repository_url=`git config --local --get remote.origin.url`
-if [[ -z $repository_url ]]
-then
-	repository_url=${PWD##*/}
-fi
+email=$(get_email)
+repository_url=$(get_repository) 
 
 raw_data=`$LOG_COMMAND` 
 encoded_data=`echo -n $raw_data | openssl enc -e -base64 | tr -d "\n"`
 
 url_params="repository=${repository_url}&token=${token}&payload=${encoded_data}&version=${VERSION}"  
-echo $url_params
-curl -d $url_params ${LISTENERURL} > result.out
+curl -d $url_params ${LISTENERURL} 
+
+#keeping track of revisions already pushed to masterbranch.com
+if($?)
+then
+	actual=`git log -n 1 --format=%H`
+	git --local --unset masterbranch.lastrevision
+	git config --local --add masterbranch.lastrevision ${actual}
+fi
 
