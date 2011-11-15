@@ -79,12 +79,12 @@ if [[ -z $raw_data ]]; then
 	exit 0
 fi
 
-#encode base64 for url
-encoded_data=`echo -n $raw_data | openssl enc -base64 | tr -d "\n" | tr "+" "-" | tr "/" "_"` 
-echo $encoded_data 
+#Regular Base64 uses + and / for code point 62 and 63. URL-Safe Base64 uses - and _ instead. Also, URL-Safe base64 omits the == padding to help preserve space.
+#http://en.wikipedia.org/wiki/Base64#URL_applications
+encoded_data=`echo -n $raw_data | openssl enc -base64 | tr -d "\n" | tr "+" "-" | tr "/" "_" |tr -d "="` 
 
-url_params="repository=${repository_url}&token=${token}&payload=${encoded_data}&version=${VERSION}"  
-curl --data-binary $url_params ${LISTENERURL} 
+url_params="vcs=git&repository=${repository_url}&token=${token}&payload=${encoded_data}&version=${VERSION}"  
+curl -d $url_params ${LISTENERURL} 
 
 #keeping track of revisions already pushed to masterbranch.com
 if [[ $? == 0 ]]; then
