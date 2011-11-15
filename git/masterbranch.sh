@@ -8,10 +8,6 @@ LOG_CMD='git log '
 #Configuration Do not touch
 get_last_revision (){
 	revision=`git config --local --get masterbranch.lastrevision`
-	if [[ -z $revision ]]
-	then
-		revision=0
-	fi
 	echo $revision
 }
 get_user_name () {
@@ -22,35 +18,37 @@ get_user_name () {
 	fi
 	echo "$git_name"
 }
-AUTHOR_OPTIONS=" --author=$(get_user_name) "
+AUTHOR_OPTIONS=' --author="'$(get_user_name)'"'
 
 
 test_connection(){
 	ping -c 2 google.com
-	if [[ -z $0 ]]
+	if [[ 0 == $? ]]
 	then
-	CONNECTIVITY=1
+		CONNECTIVITY=1
 	fi	
 }
 
-if [[ $CONNECTIVITY ]]
+test_connection
+
+if [[ $CONNECTIVITY == 1 ]]
 then
 	last_rev=$(get_last_revision)
-	if [[ -z last_rev ]]
+	if [[ -z $last_rev ]]
 	then
 		LOG_COMMAND=${LOG_CMD}'-n 1'${LOG_DEFAULT_OPTIONS}${LOG_FORMAT}
 	else
-		LOG_COMMAND=${LOG_CMD}${LOG_DEFAULT_OPTIONS}${LOG_FORMAT}${AUTHOR_OPTIONS}${last_revision}..HEAD
+		LOG_COMMAND=$LOG_CMD$LOG_DEFAULT_OPTIONS$LOG_FORMAT$AUTHOR_OPTIONS$last_rev..HEAD
 		git config --unset --local masterbranch.lastrevision
 	fi
 else
 	last_rev=$(get_last_revision)
-	if [[ -z last_rev ]]
+	if [[ -z $last_rev ]]
 	then
 		last_commit=`git log -n 1 --format=%H`
 		git config --local --add masterbranch.lastrevision ${last_commit}
 	fi
-	exit
+	exit 255
 fi
 
 
@@ -77,9 +75,15 @@ get_token () {
 #User parameters
 token=$(get_token)
 repository_url=`git config --local --get remote.origin.url`
+if [[ -z $repository_url ]]
+then
+	repository_url=${PWD##*/}
+fi
 
-raw_data=`$LOG_COMMAND`
+raw_data=`$LOG_COMMAND` 
+encoded_data=`echo -n $raw_data | openssl enc -e -base64 | tr -d "\n"`
 
-url_params="token=${TOKEN}&payload=${raw_data}&version=${VERSION}"  
-curl --data-binary ${url_params} ${LISTENERURL} > result.out
+url_params="repository=${repository_url}&token=${token}&payload=${encoded_data}&version=${VERSION}"  
+echo $url_params
+curl -d $url_params ${LISTENERURL} > result.out
 
