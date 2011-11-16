@@ -1,6 +1,6 @@
 #/bin/bash
 VERSION='0.1'
-LISTENERURL='http://localhost:9000/local-hook'
+LISTENERURL='http://localhooks.masterbranch.com/local-hook'
 
 get_last_revision_pushed_to_mb (){
 	revision=`git config --local --get masterbranch.lastrevision`
