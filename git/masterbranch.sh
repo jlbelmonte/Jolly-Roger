@@ -83,7 +83,7 @@ fi
 #http://en.wikipedia.org/wiki/Base64#URL_applications
 encoded_data=`echo -n $raw_data | openssl enc -base64 | tr -d "\n" | tr "+" "-" | tr "/" "_" |tr -d "="` 
 
-url_params="vcs=git&repository=${repository_url}&token=${token}&payload=${encoded_data}&version=${VERSION}"  
+url_params="email=$email&vcs=git&repository=${repository_url}&token=${token}&payload=${encoded_data}&version=${VERSION}"  
 curl -d $url_params ${LISTENERURL} 
 
 #keeping track of revisions already pushed to masterbranch.com
