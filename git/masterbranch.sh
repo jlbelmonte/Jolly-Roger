@@ -3,7 +3,6 @@ VERSION='0.1'
 LISTENERURL='http://localhooks.masterbranch.com/local-hook'
 
 
-
 get_last_revision_pushed_to_mb (){
 	revision=`git config --local --get masterbranch.lastrevision`
 }
@@ -17,7 +16,7 @@ get_user_name () {
 }
 
 test_connection(){
-	ping -c 2 google.com > /dev/null
+	ping -c 2 google.com &> /dev/null
 	if [ 0 != $? ]
 	then
 		exit 42
@@ -61,7 +60,8 @@ get_repository () {
 do_log () {
 	get_user_name
 	# Notice than the commit parser just parses this format
-	raw_data=`git log --author="$git_name" --pretty=format:'COMMITLINEMARK%n{ \"revision\": \"%H\",  \"author\": \"%an <%ae>\",  \"timestamp\": \"%ct\",  \"message\": \"%s\"}' --raw  $last_revision..HEAD`
+	log_output=`git log --author="$git_name" --pretty=format:'COMMITLINEMARK%n{ \"revision\": \"%H\",  \"author\": \"%an <%ae>\",  \"timestamp\": \"%ct\",  \"message\": \"%s\"}' --raw  $last_revision..HEAD`
+	raw_data=`$MASTERBRANCH_HOME/git/log2json.pl "$log_output"`
 }
 
 set_last_revision () {
@@ -95,7 +95,8 @@ fi
 encoded_data=`echo -n $raw_data | openssl enc -base64 | tr -d "\n" | tr "+" "-" | tr "/" "_" |tr -d "="` 
 
 url_params="email=$email&vcs=git&repository=${repository_url}&token=${token}&payload=${encoded_data}&version=${VERSION}"  
-curl -d $url_params ${LISTENERURL} 
+echo $encoded_data
+#curl -d $url_params ${LISTENERURL} 
 
 #keeping track of revisions already pushed to masterbranch.com
 if [ $? -eq "0" ]
