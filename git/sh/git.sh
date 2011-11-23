@@ -102,7 +102,7 @@ if [ $? -eq "0" ]
 then
 	actual=`git log -n 1 --format=%H`
 	get_last_revision_pushed_to_mb
-	if [ -z $revision ]
+	if [ $revision != "" ]
 	then
 		git config --local --unset-all masterbranch.lastrevision
 	fi
