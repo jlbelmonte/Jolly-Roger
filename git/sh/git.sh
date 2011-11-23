@@ -61,14 +61,15 @@ get_repository () {
 do_log () {
 	get_user_name
 	# Notice than the commit parser just parses this format
-	raw_data=`git log --author="$git_name" --pretty=format:'COMMITLINEMARK%n{ \"revision\": \"%H\",  \"author\": \"%an <%ae>\",  \"timestamp\": \"%ct\",  \"message\": \"%s\"}' --raw  $last_rev..HEAD`
+	raw_data=`git log --author="$git_name" --pretty=format:'COMMITLINEMARK%n{ \"revision\": \"%H\",  \"author\": \"%an <%ae>\",  \"timestamp\": \"%ct\",  \"message\": \"%s\"}' --raw  $last_revision..HEAD`
 }
 
 set_last_revision () {
-	last_rev=$(get_last_revision_pushed_to_mb)
-	if [ -z $last_rev ]
+	get_last_revision_pushed_to_mb
+	last_revision=$revision
+	if [ -z $last_revision ]
 	then
-		last_rev=`git log -n2 --format=%H | tr "\n" ":" | perl -ne '@revs=split(/:/, $_); print @revs[1]'`
+		last_revision=`git log -n2 --format=%H | tr "\n" ":" | perl -ne '@revs=split(/:/, $_); print @revs[1]'`
 	fi
 }
 
@@ -80,11 +81,12 @@ get_email
 email=$masterbranch_email
 get_repository
 repository_url=uri 
+
 set_last_revision
-
-
 do_log 
-if [ -z "$raw_data" ]; then
+
+if [ -z "$raw_data" ]
+then
 	exit 0
 fi
 
