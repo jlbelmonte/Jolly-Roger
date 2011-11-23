@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 VERSION='0.1'
 LISTENERURL='http://localhooks.masterbranch.com/local-hook'
 
