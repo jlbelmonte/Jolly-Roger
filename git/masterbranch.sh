@@ -60,7 +60,7 @@ do_log () {
 	get_user_name
 	# Notice than the commit parser just parses this format
 	log_output=`git log --author="$git_name" --pretty=format:'COMMITLINEMARK%n{ "revision": "%H",  "author": "%an <%ae>",  "timestamp": "%ct",  "message": "%s"}' --raw  $last_revision..HEAD`
-	raw_data=`$MASTERBRANCH_HOME/git/log2json.pl "$log_output"`
+	raw_data=`$MASTERBRANCH_HOME/git/log2json.pl "$log_output" | tr -d "\n"`
 }
 
 set_last_revision () {
@@ -92,7 +92,7 @@ fi
 
 #purge backslashes from the content, that may cause unexpected character escaping in the Json parser. Unexpected double quotes are managed by masterbranch parser
 
-clean_raw_data=`echo "$raw_data \c" | tr -d '\'`
+clean_raw_data=`echo "$raw_data" | tr -d '\'`
 
 #Regular Base64 uses + and / for code point 62 and 63. URL-Safe Base64 uses - and _ instead. Also, URL-Safe base64 omits the == padding to help preserve space.
 #http://en.wikipedia.org/wiki/Base64#URL_applications
