@@ -2,7 +2,6 @@
 VERSION='0.1'
 LISTENERURL='http://localhooks.masterbranch.com/local-hook'
 
-
 get_last_revision_pushed_to_mb (){
 	revision=`git config --local --get masterbranch.lastrevision`
 }
@@ -16,7 +15,7 @@ get_user_name () {
 }
 
 test_connection(){
-	ping -c 2 google.com &> /dev/null
+	ping -c 2 google.com > /dev/null
 	if [ 0 != $? ]
 	then
 		exit 42
@@ -24,37 +23,37 @@ test_connection(){
 }
 
 print_error () {
-	echo Please config your client as follows
-	echo git config --global --add masterbranch.token TOKEN
-	echo git config --global --add masterbranch.email EMAIL
+	printf Please config your client as follows
+	printf git config --global --add masterbranch.token TOKEN
+	printf git config --global --add masterbranch.email EMAIL
 	exit 255
 }
 
 get_token () {
 	masterbranch_token=`git config  --global --get masterbranch.token`
-	if [ $masterbranch_token == "" ]
+	if [ $masterbranch_token = "" ]
 	then
 		print_error
 	fi	
-	echo "$masterbranch_token"	
+	printf "$masterbranch_token"	
 }
 
 get_email () {
 	masterbranch_email=`git config  --global --get masterbranch.email`
-	if [ $masterbranch_email == "" ]
+	if [ $masterbranch_email = "" ]
 	then
 		print_error
 	fi	
-	echo "$masterbranch_email"		
+	printf "$masterbranch_email"		
 }
 
 get_repository () {
 	uri=`git config --local --get remote.origin.url`
-	if [ $uri == "" ]
+	if [ $uri = "" ]
 	then
 		uri=${PWD##*/}
 	fi
-	echo "$uri"
+	printf "$uri"
 }
 
 do_log () {
@@ -90,20 +89,24 @@ then
 	exit 0
 fi
 
+
+#purge backslashes from the content, that may cause unexpected character escaping in the Json parser. Unexpected double quotes are managed by masterbranch parser
+
+clean_raw_data=`echo "$raw_data \c" | tr -d '\'`
+
 #Regular Base64 uses + and / for code point 62 and 63. URL-Safe Base64 uses - and _ instead. Also, URL-Safe base64 omits the == padding to help preserve space.
 #http://en.wikipedia.org/wiki/Base64#URL_applications
-encoded_data=`echo -n $raw_data | openssl enc -base64 | tr -d "\n" | tr "+" "-" | tr "/" "_" |tr -d "="` 
+encoded_data=`echo "$clean_raw_data" | openssl enc -base64 | tr -d "\n" | tr "+" "-" | tr "/" "_" |tr -d "="` 
 
 url_params="email=$email&vcs=git&repository=${repository_url}&token=${token}&payload=${encoded_data}&version=${VERSION}"  
-echo $encoded_data
-#curl -d $url_params ${LISTENERURL} 
-
+##curl -d $url_params ${LISTENERURL} 
+printf $url_params ${LISTENERURL}
 #keeping track of revisions already pushed to masterbranch.com
 if [ $? -eq "0" ]
 then
 	actual=`git log -n 1 --format=%H`
 	get_last_revision_pushed_to_mb
-	if [ $revision != "" ]
+	if [ -n "$revision" ]
 	then
 		git config --local --unset-all masterbranch.lastrevision
 	fi
