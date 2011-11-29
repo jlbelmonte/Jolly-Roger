@@ -99,8 +99,7 @@ clean_raw_data=`echo "$raw_data" | tr -d '\'`
 encoded_data=`echo "$clean_raw_data" | openssl enc -base64 | tr -d "\n" | tr "+" "-" | tr "/" "_" |tr -d "="` 
 
 url_params="email=$email&vcs=git&repository=${repository_url}&token=${token}&payload=${encoded_data}&version=${VERSION}"  
-##curl -d $url_params ${LISTENERURL} 
-printf $url_params ${LISTENERURL}
+curl -d $url_params ${LISTENERURL} 
 #keeping track of revisions already pushed to masterbranch.com
 if [ $? -eq "0" ]
 then
