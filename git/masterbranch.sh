@@ -35,7 +35,6 @@ get_token () {
 	then
 		print_error
 	fi	
-	printf "$masterbranch_token"	
 }
 
 get_email () {
@@ -43,8 +42,7 @@ get_email () {
 	if [ $masterbranch_email = "" ]
 	then
 		print_error
-	fi	
-	printf "$masterbranch_email"		
+	fi			
 }
 
 get_repository () {
@@ -53,7 +51,6 @@ get_repository () {
 	then
 		uri=${PWD##*/}
 	fi
-	printf "$uri"
 }
 
 do_log () {
@@ -79,10 +76,11 @@ token=$masterbranch_token
 get_email
 email=$masterbranch_email
 get_repository
-repository_url=uri 
+repository_url=$uri 
 
 set_last_revision
 do_log 
+
 
 if [ -z "$raw_data" ]
 then
@@ -92,14 +90,15 @@ fi
 
 #purge backslashes from the content, that may cause unexpected character escaping in the Json parser. Unexpected double quotes are managed by masterbranch parser
 
-clean_raw_data=`echo "$raw_data" | tr -d '\'`
 
 #Regular Base64 uses + and / for code point 62 and 63. URL-Safe Base64 uses - and _ instead. Also, URL-Safe base64 omits the == padding to help preserve space.
 #http://en.wikipedia.org/wiki/Base64#URL_applications
-encoded_data=`echo "$clean_raw_data" | openssl enc -base64 | tr -d "\n" | tr "+" "-" | tr "/" "_" |tr -d "="` 
+
+encoded_data=`echo "$raw_data" | openssl enc -base64 | tr -d "\n" | tr "+" "-" | tr "/" "_" |tr -d "="` 
 
 url_params="email=$email&vcs=git&repository=${repository_url}&token=${token}&payload=${encoded_data}&version=${VERSION}"  
-curl -d $url_params ${LISTENERURL} 
+
+curl -d $url_params ${LISTENERURL}  > /dev/null 2>&1
 #keeping track of revisions already pushed to masterbranch.com
 if [ $? -eq "0" ]
 then

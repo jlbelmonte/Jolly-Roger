@@ -5,6 +5,13 @@ use strict;
 my $commit_list="[";
 my @raw_commits=split(/COMMITLINEMARK/,$ARGV[0]);
 
+sub clean_characters{
+	my $commits = shift;
+	$commits =~ s/\\//g;
+	return $commits;
+	
+}
+
 foreach my $raw_commit (@raw_commits){
 	my $added;
 	my $deleted;
@@ -36,4 +43,4 @@ foreach my $raw_commit (@raw_commits){
 }
 chop $commit_list;
 $commit_list = $commit_list."]";
-print	$commit_list;
+print	clean_characters($commit_list);
