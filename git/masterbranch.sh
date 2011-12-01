@@ -47,7 +47,7 @@ get_email () {
 
 get_repository () {
 	uri=`git config --local --get remote.origin.url`
-	if [ $uri = "" ]
+	if [ -z $uri ]
 	then
 		uri=${PWD##*/}
 	fi
